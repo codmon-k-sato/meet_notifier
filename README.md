@@ -1,0 +1,2 @@
+# meet_notifier
+google chromeのextentionsでMD/ME合同日例が始まったら特定メンバーを呼ぶためのアプリです。
