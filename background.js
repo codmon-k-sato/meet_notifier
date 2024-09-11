@@ -8,24 +8,31 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     chrome.storage.local.get([`processed_${tabId}`], (result) => {
       // まだ処理されていない場合のみ実行
       if (!result[`processed_${tabId}`]) {
-        chrome.storage.sync.get(['meetUrl'], (data) => {
-          const urlPattern = new RegExp(`meet.google.com/(${data.meetUrl})`);
-          // meetのURLの場合のみ実行する
-          if (urlPattern.test(changeInfo.url)) {
-            if (tabId) {
-              chrome.scripting.executeScript({
-                target: { tabId: tabId },
-                files: ['content.js'] // DOMの操作やユーザー画面の操作を伴うのでcontent.jsを実行する
-              }, () => {
-                if (chrome.runtime.lastError) {
-                  console.error(chrome.runtime.lastError);
-                } else {
-                  // 処理済みフラグをセット
-                  chrome.storage.local.set({ [`processed_${tabId}`]: true });
-                }
-              });
-            } else {
-              console.error('Invalid tab ID');
+        chrome.storage.sync.get(['meetUrls'], (data) => {
+          // 複数のMeet URLに対応するために、各URLをチェックする
+          if (data.meetUrls && data.meetUrls.length > 0) {
+            const matched = data.meetUrls.some(meetUrl => {
+              const urlPattern = new RegExp(`meet.google.com/(${meetUrl})`);
+              return urlPattern.test(changeInfo.url);
+            });
+
+            // もしURLがMeetのものに一致した場合のみ実行する
+            if (matched) {
+              if (tabId) {
+                chrome.scripting.executeScript({
+                  target: { tabId: tabId },
+                  files: ['content.js'] // DOMの操作やユーザー画面の操作を伴うのでcontent.jsを実行する
+                }, () => {
+                  if (chrome.runtime.lastError) {
+                    console.error(chrome.runtime.lastError);
+                  } else {
+                    // 処理済みフラグをセット
+                    chrome.storage.local.set({ [`processed_${tabId}`]: true });
+                  }
+                });
+              } else {
+                console.error('Invalid tab ID');
+              }
             }
           }
         });
